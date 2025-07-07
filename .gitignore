@@ -1,0 +1,17 @@
+.DS_Store
+.Rhistory
+.Rprofile
+.Rproj.user/
+data/
+dcspomic_paper.Rproj
+
+*.rds
+
+output/
+figures/
+analysis/hnscc_tma/
+
+cluster_sbatch_part1.R
+cluster_sbatch_part2.R
+cluster_sbatch_part3.R
+cluster_sbatch_part4.R

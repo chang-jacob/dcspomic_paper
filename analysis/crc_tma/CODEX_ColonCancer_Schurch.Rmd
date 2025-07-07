@@ -1,0 +1,190 @@
+---
+title: "Codex analysis"
+author: "Ellis Patrick"
+output: html_document
+---
+This RMarkdown was adapted from the spicyR paper. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+```{r loadPackages, message = FALSE, warning = FALSE}
+
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(plotly))
+suppressPackageStartupMessages(library(janitor))
+suppressPackageStartupMessages(library(spicyR))
+
+# ncores = 20
+```
+
+# Summary
+
+We will apply spicyR to a colon cancer dataset for Schurch et al (2020) downloaded from https://data.mendeley.com/datasets/mpjzbtfgfr/1 . While not biologically relevant, to illustrate the application of spicyR, we compare tumours with "Crohn’s-like reaction” to those with absence of TLSs and the presence of diffuse inflammatory infiltration as defined by the `group` variable. We use a mixed effects model as there are four images per patient.
+
+* There are many cell type pairs with p-value less than 0.05 as show in the p-value histogram.
+* There were 7 cell type pairs with an FDR less than 0.05.
+
+
+
+# Read in data 
+
+## Read CODEX data
+
+```{r readCellData}
+codexData <- read_csv("/Users/jacobchang/Lab/checkmate_paper/data/crc_tma/CRC_clusters_neighborhoods_markers.csv") %>%
+    select(-1) %>% 
+    janitor::clean_names() %>% 
+  as.data.frame() 
+
+lev <- unique(codexData$cluster_name)
+codexData$cellType <- factor(codexData$cluster_name, levels = lev, labels = make_clean_names(lev))
+
+
+cellExp <- codexData %>% 
+  spicyR::SegmentedCells(spatialCoords = c("x_x","y_y"), imageIDString = "file_name")
+```
+
+## Read clinical data
+
+```{r readClinicalData}
+clinicalCodex <- readxl::read_xlsx("/Users/jacobchang/Lab/checkmate_paper/data/crc_tma/CRC_TMAs_patient_annotations.xlsx") %>% janitor::clean_names()
+
+phenoData <- clinicalCodex %>% 
+  mutate(patients = patient) %>%
+  as.data.frame()
+
+imageMatch <- codexData %>% 
+  select(patients, imageID = file_name) %>%
+  unique()
+
+
+phenoData <-   inner_join(phenoData, imageMatch)  %>% 
+  as.data.frame() %>%
+  mutate(image = imageID, subject = gsub("_A|_B", "", imageID), patient = factor(patients), group = factor(group), histology = factor(full_histology)) %>%
+  column_to_rownames("image")
+
+
+imagePheno(cellExp) <- phenoData[rownames(cellExp),]
+```
+## Remove cell typs with low proportion
+
+```{r}
+cellProp <- table(imageID(cellExp),cellType(cellExp))
+dropCellTypes <- names(which(colMeans(cellProp==0)>0.21))
+cellExp <- filterCells(cellExp, !cellType(cellExp)%in%c(dropCellTypes, "dirt"))
+cellType(cellExp) <- factor(as.character(cellType(cellExp)))
+```
+
+# Run spicyR
+
+## Use mixed effects model
+
+```{r runSpicyR}
+
+t1 <- Sys.time()
+
+ncores = 4
+# spicyTest <- spicy(cellExp, 
+#                    condition = "group", 
+#                    subject = "patient",
+#                    BPPARAM = BiocParallel::MulticoreParam(ncores),
+#                    Rs = seq(0.001, 100, by = 1),
+#                    includeZeroCells = FALSE
+#                   )
+spicyTest <- spicy(cellExp, 
+                   condition = "group", 
+                   subject = "patient",
+                   BPPARAM = BiocParallel::MulticoreParam(ncores),
+                   Rs = seq(0.001, 132.626, by = 1),
+                   includeZeroCells = FALSE
+                  )
+t2 <- Sys.time()
+
+t2 - t1
+
+saveRDS(spicyTest, file = "spicyr_group_results_r132.rds")
+```
+
+
+```{r}
+
+
+```
+
+
+```{r}
+topPairs(spicyTest, n = 200) |> filter(p.value < 0.05)
+```
+
+
+```{r signifPlot, fig.height=5, fig.width=5}
+
+signifPlot(spicyTest, breaks=c(-3, 3, 0.1), marksToPlot = c("tumor_cells","stroma","vasculature","smooth_muscle","undefined","cd4_t_cells_cd45ro","cd8_t_cells","tregs","b_cells","plasma_cells","cd68_macrophages","cd68_cd163_macrophages","undefined"))
+           
+           
+```
+
+
+## Look at weights
+
+
+```{r codex_weights, fig.height=5, fig.width=6}
+w <- spicyTest$weights
+nCells <- spicyTest$nCells
+m1 <- unlist(lapply(strsplit(names(w), "__"), function(x)x[1]))
+m2 <- unlist(lapply(strsplit(names(w), "__"), function(x)x[2]))
+counts1 <- as.vector(nCells[,m1])
+counts2 <- as.vector(nCells[,m2])
+df <- data.frame(counts1, counts2, weights = unlist(w))
+ggplot(df, aes(sqrt(counts1),sqrt(counts2), colour = (weights))) + geom_point() + 
+  theme_classic() + scale_color_continuous(type = "viridis") +
+  xlim(0,50) + ylim(0,50)+
+  labs(x = "sqrt ( cell type A )", y = "sqrt ( cell type B )", colour = "weights")
+
+```
+
+```{r}
+df <- as.data.frame(cellExp@listData$cellSummary)
+phenoData$group_name <- rownames(phenoData)
+
+foo <- left_join(df |> select(-group), phenoData |> select(group_name, group, patient, histology))
+
+write.csv(foo, "/Users/jacobchang/Lab/checkmate_paper/data/crc_tma/processed_crc_tma.csv")
+```
+
+
+
+
+
+
+
+## Look at p-value histogram
+
+
+```{r pvalueHistogram}
+hist(spicyTest$p.value[,2], breaks = 20)
+```
+#####
+Compare with metadisco
+
+
+
+
+
+
+```{r}
+sessionInfo()
+```
+
+
+
+
+
+
+
+
+
+
+
