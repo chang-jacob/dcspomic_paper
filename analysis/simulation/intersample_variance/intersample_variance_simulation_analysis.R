@@ -9,7 +9,9 @@
 ## ---------------------------
 ##
 #' Description:
-#' This script ...
+#' This script reads in the doubly stochastic point process simulation data
+#' and calculates the RMSE between DC-SPOMIC estimates and ground truth estimates
+#' for both mu and tau2.
 #'
 #' Note:
 #' The input files to this script are generated through the script
