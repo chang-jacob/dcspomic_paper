@@ -720,7 +720,7 @@ spomic@df |>
   tidyplots::remove_padding() |>
   tidyplots::adjust_title(spomic@details$sample) |>
   tidyplots::adjust_legend_title("Cell type") |>
-  tidyplots::add_caption(paste(count_i, i, "\n", count_j, j)) |>
+  # tidyplots::add_caption(paste(count_i, i, "\n", count_j, j)) |>
   spomic_style()
 
 # Define your 4 main cell types
@@ -760,9 +760,12 @@ spomic@df |>
   spomic_style()
   }
 
-plot_quad(dcspomic@group1_spomics[[4]])
+plot_quad(dcspomic@group1_spomics[[3]]) |>
+  tidyplots::save_plot(filename = "output/crc_tma/tls_cluster_group1.pdf")
 
-plot_quad(dcspomic@group2_spomics[[3]])
+plot_quad(dcspomic@group2_spomics[[3]]) |>
+  tidyplots::save_plot(filename = "output/crc_tma/tls_cluster_group2.pdf")
+
 
 
 ### ===========================

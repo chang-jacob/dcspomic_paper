@@ -1,7 +1,9 @@
 
 # read cluster process outputs generated on Sherlock
 # simulations were split into four runs to improve processing time
-data_path <- "output/simulation/cluster_process"
+# data_path <- "output/simulation/cluster_process"
+data_path <- "output/simulation/intersample_variance_v2"
+
 df1 <- readRDS(file.path(data_path, "cluster_process_df1.rds"))
 df2 <- readRDS(file.path(data_path, "cluster_process_df2.rds"))
 df3 <- readRDS(file.path(data_path, "cluster_process_df3.rds"))
@@ -28,82 +30,6 @@ R <- 200
 
 BASE_DIR <- "/Users/jacobchang/Lab/dcspomic_paper"
 
-parent_lambda0 = 0.00001 + runif(1, 0, 0.0001)
-offspring_n0 = 3 + rnbinom(1, size=10, mu=2)
-offspring_dispersion0 = 200 + abs(rnorm(1, mean=0, sd = 50))
-
-intra_sample_simulation <- function(intra_sample_n,
-                                    parent_lambda0,
-                                    offspring_n0,
-                                    offspring_dispersion0,
-                                    patient = "",
-                                    window_size = WINDOW_SIZE,
-                                    plot = FALSE) {
-  intra_sample_results_list <- list()
-  for(n in 1:intra_sample_n) {
-    parent_lambda <- parent_lambda0 + runif(1, 0, 1/(window_size * window_size))
-    offspring_n <- rpois(n = 1, offspring_n0) + 1
-    offspring_dispersion <- abs(offspring_dispersion0 + rnorm(1, 0, 15))
-
-    parents <- rpoispp(lambda = parent_lambda, win = square(window_size))
-    offspring_x <- numeric()
-    offspring_y <- numeric()
-
-    if (parents$n > 0) {
-      num_offspring <- rpois(parents$n, offspring_n) + 1
-      new_x <- rnorm(sum(num_offspring),
-                     mean = rep(parents$x, num_offspring),
-                     sd = offspring_dispersion)
-      new_y <- rnorm(sum(num_offspring),
-                     mean = rep(parents$y, num_offspring),
-                     sd = offspring_dispersion)
-
-      valid_idx <- (new_x >= 0) & (new_x <= window_size) & (new_y >= 0) & (new_y <= window_size)
-      offspring_x <- new_x[valid_idx]
-      offspring_y <- new_y[valid_idx]
-    }
-
-    parent_ppp <- ppp(parents$x, parents$y, window = square(window_size), marks = rep("A", parents$n))
-    offspring_ppp <- ppp(offspring_x, offspring_y, window = square(window_size), marks = rep("B", length(offspring_x)))
-    marked_process <- superimpose(parent_ppp, offspring_ppp)
-    marks(marked_process) <- as.factor(marks(marked_process))
-
-    spomic <- create_spomic(ppp_to_df(marked_process, sample_name = ""))
-    spomic <- set_spomic_hyperparameters(spomic = spomic,
-                                         colocalization_type = "Lcross",
-                                         fixed_distance = FALSE,
-                                         r = R)
-    # plot_spomic(spomic) |> print()
-    spomic <- get_spatial_stats(spomic)
-
-    intra_sample_results_list[[n]] <- get_spatial_summary(spomic) |>
-      mutate(patient = patient,
-             intra_sample = n)
-  }
-  return(bind_rows(intra_sample_results_list))
-}
-
-inter_sample_simulation <- function(intra_sample_n) {
-  parent_lambda0 = 0.00001 + runif(100, 0, 0.0001)
-  offspring_n0 = 3 + rnbinom(100, size=10, mu=2)
-  offspring_dispersion0 = 200 + abs(rnorm(100, mean=0, sd = 50))
-
-  results_list <- pblapply(1:25, function(i){
-    print(i)
-    intra_sample_simulation(
-      intra_sample_n = intra_sample_n,
-      parent_lambda0 = parent_lambda0[i],
-      offspring_n0 = offspring_n0[i],
-      offspring_dispersion0 = offspring_dispersion0[i],
-      patient = i
-    )
-  })
-  return(dplyr::bind_rows(results_list))
-}
-
-# load data
-# cluster_process_list <- readRDS("output/simulation/cluster_process_list.rds")
-# results <- dplyr::bind_rows(cluster_process_list)
 
 results <- df
 intermediate_level <- results |>
@@ -121,7 +47,7 @@ total_level2 <- results |>
   dplyr::summarise(mu = mean(colocalization_stat),
                    tau2 = var(colocalization_stat))
 
-total_level
+
 
 ################################################################################
 ###
@@ -281,17 +207,19 @@ library(tidyplots)
 upper_limit <- max(c(df_mu_long$RMSE, df_tau2_long$RMSE), na.rm=TRUE)
 
 df_mu_long |>
+  mutate(n = as.numeric(n)) |>
   tidyplot(x = n, y = RMSE, color = Method) |>
   add_data_points(size = 0.25) |>
   add_line() |>
   adjust_font(fontsize=5) |>
   adjust_title("Comparison of estimates for \u03BC", fontsize = 7) |>
   adjust_x_axis_title("Number of samples") |>
-  adjust_y_axis_title(expression("RMSE")) |>
+  adjust_y_axis_title(expression("RMSE of \u03BC")) |>
   remove_legend_title() |>
   adjust_legend_position(position = "bottom") |>
   adjust_size(width = 3, height = 2, unit = "in") |>
-  adjust_y_axis(limits = c(0, upper_limit))
+  adjust_y_axis(limits = c(0, sqrt(upper_limit))) |>
+  adjust_x_axis(cut_short_scale = TRUE)
 
 tidyplots::save_plot(
   plot = ggplot2::last_plot(),
@@ -303,13 +231,14 @@ tidyplots::save_plot(
 )
 
 df_tau2_long |>
+  mutate(n = as.numeric(n)) |>
   tidyplot(x = n, y = RMSE, color = Method) |>
   add_data_points(size = 0.25) |>
   add_line() |>
   adjust_font(fontsize=5) |>
   adjust_title("Comparison of estimates for \u03C4\u00B2", fontsize = 7) |>
   adjust_x_axis_title("Number of samples") |>
-  adjust_y_axis_title(expression("RMSE")) |>
+  adjust_y_axis_title(expression("RMSE of \u03C4\u00B2")) |>
   remove_legend_title() |>
   adjust_legend_position(position = "bottom") |>
   adjust_size(width = 3, height = 2, unit = "in") |>

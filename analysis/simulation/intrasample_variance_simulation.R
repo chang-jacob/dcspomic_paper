@@ -27,6 +27,7 @@ library(ggpubr)
 library(ggrepel)
 library(cowplot)
 library(patchwork)
+library(tidyplots)
 
 ## Set global parameters
 square_size <- 2000
@@ -82,9 +83,66 @@ LAMBDA_A <- 0.2/1000
 LAMBDA_B <- 0.15/1000
 
 set.seed(123)
-homogeneous_spomic <- list()
-homogeneous_intensity_plots <- list()
-homogeneous_spomic_colocalization_results <- list()
+# homogeneous_spomic <- list()
+# homogeneous_intensity_plots <- list()
+# homogeneous_spomic_colocalization_results <- list()
+homogeneous_list <- list()
+for(j in 1:10){
+  print(j)
+  homogeneous_spomic <- list()
+  homogeneous_intensity_plots <- list()
+  homogeneous_spomic_colocalization_results <- list()
+  for(i in 1:100) {
+    # print(i)
+    homogeneous_intensity <- c(LAMBDA_A,
+                               LAMBDA_B,
+                               LAMBDA_C,
+                               LAMBDA_RARE1,
+                               LAMBDA_RARE2)
+    pp <- rmpoispp(lambda = homogeneous_intensity, win = window, types = cell_types)
+    df <- pp |> as.data.frame() |> rename(cell_type = marks) |> mutate(sample = "")
+    spomic <- create_spomic(df)
+    spomic <- set_spomic_hyperparameters(spomic=spomic, r = 200, fixed_distance = TRUE, colocalization_type="Lcross")
+    spomic <- get_spatial_stats(spomic)
+    homogeneous_spomic_colocalization_results[[i]] <- get_spatial_summary(spomic) |>
+      mutate(round = j)
+
+    if(i %in% 1:10) homogeneous_spomic[[i]] <- spomic
+
+    homogeneous_intensity_plots[[i]] <- plot_spomic(spomic)
+  }
+  homogeneous_list[[j]] <- bind_rows(homogeneous_spomic_colocalization_results)
+}
+homogeneous_rounds <- bind_rows(homogeneous_list)
+saveRDS(homogeneous_rounds, "output/simulation/intrasample_variance/homogeneous_simulation_10rounds.rds")
+
+generate_variance_plot2 <- function(spomic_colocalization_df, spomic1, title, output_name) {
+  # spomic_colocalization_df <- bind_rows(cluster_spomic_colocalization_results)
+  ground_truth_estimates <- spomic_colocalization_df |>
+    group_by(i_j) |>
+    summarise(theta_k_hat = mean(colocalization_stat, na.rm=TRUE),
+              sigma2_k = var(colocalization_stat, na.rm=TRUE))
+
+  df <- ground_truth_estimates |> inner_join(spomic1 |> get_spatial_summary())
+  corr <- cor(df$colocalization_var, df$sigma2_k, use = "complete.obs")
+
+  df |>
+    tidyplot(x = colocalization_var, y = sigma2_k) |>
+    add_data_points() |>
+    add_data_labels_repel(label = i_j, max.overlaps = 10, fontsize = 5) |>
+    add_curve_fit(method = "lm", alpha = 0.1) |>
+    add_caption(paste("r =", round(corr, 2))) |>
+    adjust_x_axis_title("$hat(sigma)[k]^2$") |>
+    adjust_y_axis_title("$sigma[k]^2$") |>
+    adjust_font(fontsize=5) |>
+    adjust_title(title = title, fontsize = 7)
+
+  save_plot(plot = ggplot2::last_plot(),
+            filename = output_name)
+}
+
+head(homogeneous_rounds)
+
 for(i in 1:100) {
   print(i)
   homogeneous_intensity <- c(LAMBDA_A,
@@ -95,7 +153,7 @@ for(i in 1:100) {
   pp <- rmpoispp(lambda = homogeneous_intensity, win = window, types = cell_types)
   df <- pp |> as.data.frame() |> rename(cell_type = marks) |> mutate(sample = "")
   spomic <- create_spomic(df)
-  spomic <- set_spomic_hyperparameters(spomic=spomic, r = 200, colocalization_type="Lcross")
+  spomic <- set_spomic_hyperparameters(spomic=spomic, r = 200, fixed_distance = TRUE, colocalization_type="Lcross")
   spomic <- get_spatial_stats(spomic)
   homogeneous_spomic_colocalization_results[[i]] <- get_spatial_summary(spomic)
 
