@@ -4,7 +4,7 @@
 ##
 ## Author: Jake Chang
 ##
-## Date Modified: 2025-07-01
+## Date Modified: 2025-07-10
 ##
 ## ---------------------------
 ##
@@ -19,8 +19,12 @@
 ## ---------------------------
 
 ## load libraries
-devtools::load_all("/Users/jacobchang/Lab/spomic")
-devtools::load_all("/Users/jacobchang/Lab/dcspomic")
+# devtools::load_all("/Users/jacobchang/Lab/spomic")
+# devtools::load_all("/Users/jacobchang/Lab/dcspomic")
+
+devtools::load_all("/home/groups/plevriti/jachang4/spomic")
+devtools::load_all("/home/groups/plevriti/jachang4/dcspomic")
+
 
 library(metafor)
 library(tidyverse)
@@ -29,7 +33,7 @@ library(pbapply)
 library(beepr)
 library(janitor)
 
-source("analysis/plotting_utils.R")
+source("dcspomic_paper/analysis/plotting_utils.R")
 
 # Schurch et al. has a curated TMA with two groups which we will perform
 # differential colocalization analysis on
@@ -72,7 +76,6 @@ codex_df |>
   tidyplots::adjust_colors(new_colors = crc_tma_palette) |>
   tidyplots::remove_x_axis_labels() |>
   tidyplots::remove_x_axis_ticks() |>
-  # tidyplots::adjust_size(width = 1, unit = "in") |>
   tidyplots::split_plot(by="group_label") |>
   tidyplots::save_plot("output/crc_tma/cell_proportions.png", units = "in", height = 1.5, width = 6) |>
   tidyplots::save_plot("output/crc_tma/cell_proportions.pdf", units = "in",  height = 9, width = 6) |>
@@ -148,12 +151,55 @@ group2_spomics <- pblapply(seq_along(group2_spomics), function(i) {
 saveRDS(group2_spomics, "output/crc_tma/group2_spomics_Lcross_global_envelope.rds")
 if(alert) beep()
 
+## Lcross.inhom
+set.seed(123)
+alert <- TRUE
+# Lcross (global envelope)
+# # Outputs are saved, no need to run again unless you want a different colocalization statistic
+group1_spomics <- pblapply(seq_along(group1_spomics), function(i) {
+  spomic <- group1_spomics[[i]]
+  spomic <- set_spomic_hyperparameters(spomic, colocalization_type = "Lcross.inhom", fixed_distance = FALSE)
+  spomic <- get_spatial_stats(spomic)
+  return(spomic)
+}, cl=parallel::detectCores()-1)
+saveRDS(group1_spomics, "output/crc_tma/group1_spomics_Lcross_inhom_global_envelope.rds")
+if(alert) beep()
+
+group2_spomics <- pblapply(seq_along(group2_spomics), function(i) {
+  spomic <- group2_spomics[[i]]
+  spomic <- set_spomic_hyperparameters(spomic, colocalization_type = "Lcross.inhom", fixed_distance = FALSE)
+  spomic <- get_spatial_stats(spomic)
+  return(spomic)
+}, cl=parallel::detectCores()-1)
+saveRDS(group2_spomics, "output/crc_tma/group2_spomics_Lcross_inhom_global_envelope.rds")
+
+## CLQ
+# # Outputs are saved, no need to run again unless you want a different colocalization statistic
+group1_spomics <- pblapply(seq_along(group1_spomics), function(i) {
+  spomic <- group1_spomics[[i]]
+  spomic <- set_spomic_hyperparameters(spomic, colocalization_type = "CLQ", fixed_distance = FALSE)
+  spomic <- get_spatial_stats(spomic)
+  return(spomic)
+}, cl=parallel::detectCores()-1)
+saveRDS(group1_spomics, "output/crc_tma/group1_spomics_CLQ.rds")
+
+group2_spomics <- pblapply(seq_along(group2_spomics), function(i) {
+  spomic <- group2_spomics[[i]]
+  spomic <- set_spomic_hyperparameters(spomic, colocalization_type = "CLQ", fixed_distance = FALSE)
+  spomic <- get_spatial_stats(spomic)
+  return(spomic)
+}, cl=parallel::detectCores()-1)
+saveRDS(group2_spomics, "output/crc_tma/group2_spomics_CLQ.rds")
+
 ## ---------------------------
 
 ## run DC-SPOMIC
 
 group1_spomics <- readRDS("output/crc_tma/group1_spomics_Lcross_global_envelope.rds")
 group2_spomics <- readRDS("output/crc_tma/group2_spomics_Lcross_global_envelope.rds")
+
+# group1_spomics <- readRDS("output/crc_tma/group1_spomics_Lcross_inhom_global_envelope.rds")
+# group2_spomics <- readRDS("output/crc_tma/group2_spomics_Lcross_inhom_global_envelope.rds")
 
 dcspomic <- create_dcspomic(
   group1_name = "CLR",
@@ -177,7 +223,8 @@ results_without_unknowns$FDR <- p.adjust(results_without_unknowns$pval, method="
 results_without_unknowns$holm <- p.adjust(results_without_unknowns$pval, method="holm")
 dcspomic@results$differential_testing <- results_without_unknowns
 
-plot_volcano(dcspomic, alpha = 0.05)
+alpha <- 0.05
+plot_volcano(dcspomic, alpha = alpha)
 
 tidyplots::save_plot(filename = "output/crc_tma/lcross_75um/volcano.png", units = "in")
 tidyplots::save_plot(filename = "output/crc_tma/lcross_75um/volcano.pdf", units = "in")
@@ -766,8 +813,149 @@ plot_quad(dcspomic@group1_spomics[[3]]) |>
 plot_quad(dcspomic@group2_spomics[[3]]) |>
   tidyplots::save_plot(filename = "output/crc_tma/tls_cluster_group2.pdf")
 
+dcspomic@group1_spomics[[1]]@df %>% filter(cell_type %in% c("(b_cells)", "(tregs)", "(cd8_t_cells)", "(cd4_t_cells_cd45ro)"))
 
 
+library(dplyr)
+library(RANN)
+
+cell_types <- c("(b_cells)", "(tregs)", "(cd8_t_cells)", "(cd4_t_cells_cd45ro)")
+df_sub <- dcspomic@group1_spomics[[1]]@df %>% filter(cell_type %in% cell_types)
+
+# Initialize result dataframe
+result <- data.frame(
+  cell_id = df_sub$cell_id,
+  cell_type = df_sub$cell_type,
+  nn_b_cells = NA,
+  d_b_cells = NA,
+  nn_tregs = NA,
+  d_tregs = NA,
+  nn_cd8 = NA,
+  d_cd8 = NA,
+  nn_cd4 = NA,
+  d_cd4 = NA,
+  dist_sum = NA
+)
+
+for (i in 1:nrow(df_sub)) {
+  this_cell <- df_sub[i, ]
+  this_xy <- as.numeric(this_cell[, c("x", "y")])
+  dists <- c()
+  ids <- c()
+  
+  for (target_type in cell_types) {
+    if (this_cell$cell_type == target_type) {
+      # Find nearest neighbor of *same* type, excluding self
+      others <- df_sub %>% filter(cell_type == target_type, cell_id != this_cell$cell_id)
+    } else {
+      others <- df_sub %>% filter(cell_type == target_type)
+    }
+    # KD-tree is overkill for 1 query, use base distance
+    if (nrow(others) == 0) {
+      ids <- c(ids, NA)
+      dists <- c(dists, NA)
+    } else {
+      xy_mat <- as.matrix(others[, c("x", "y")])
+      diff <- sweep(xy_mat, 2, this_xy, "-")
+      euclid <- sqrt(rowSums(diff^2))
+      min_idx <- which.min(euclid)
+      ids <- c(ids, others$cell_id[min_idx])
+      dists <- c(dists, euclid[min_idx])
+    }
+  }
+  # Assign results
+  result$nn_b_cells[i] <- ids[1]
+  result$d_b_cells[i] <- dists[1]
+  result$nn_tregs[i] <- ids[2]
+  result$d_tregs[i] <- dists[2]
+  result$nn_cd8[i] <- ids[3]
+  result$d_cd8[i] <- dists[3]
+  result$nn_cd4[i] <- ids[4]
+  result$d_cd4[i] <- dists[4]
+  result$dist_sum[i] <- sum(dists, na.rm = TRUE)
+}
+
+result %>% group_by(cell_type) %>% summarise(mean(dist_sum, na.rm = TRUE))
+mean(result$dist_sum, na.rm=TRUE)
+hist(result$dist_sum, na.rm=TRUE)
+
+grab_immune_cluster_dist <- function(spomic) {
+  cell_types <- c("(b_cells)", "(tregs)", "(cd8_t_cells)", "(cd4_t_cells_cd45ro)")
+  df_sub <- spomic@df %>% filter(cell_type %in% cell_types)
+  
+  # Initialize result dataframe
+  result <- data.frame(
+    cell_id = df_sub$cell_id,
+    cell_type = df_sub$cell_type,
+    nn_b_cells = NA,
+    d_b_cells = NA,
+    nn_tregs = NA,
+    d_tregs = NA,
+    nn_cd8 = NA,
+    d_cd8 = NA,
+    nn_cd4 = NA,
+    d_cd4 = NA,
+    dist_sum = NA
+  )
+  
+  for (i in 1:nrow(df_sub)) {
+    this_cell <- df_sub[i, ]
+    this_xy <- as.numeric(this_cell[, c("x", "y")])
+    dists <- c()
+    ids <- c()
+    
+    for (target_type in cell_types) {
+      if (this_cell$cell_type == target_type) {
+        # Find nearest neighbor of *same* type, excluding self
+        others <- df_sub %>% filter(cell_type == target_type, cell_id != this_cell$cell_id)
+      } else {
+        others <- df_sub %>% filter(cell_type == target_type)
+      }
+      # KD-tree is overkill for 1 query, use base distance
+      if (nrow(others) == 0) {
+        ids <- c(ids, NA)
+        dists <- c(dists, NA)
+      } else {
+        xy_mat <- as.matrix(others[, c("x", "y")])
+        diff <- sweep(xy_mat, 2, this_xy, "-")
+        euclid <- sqrt(rowSums(diff^2))
+        min_idx <- which.min(euclid)
+        ids <- c(ids, others$cell_id[min_idx])
+        dists <- c(dists, euclid[min_idx])
+      }
+    }
+    # Assign results
+    result$nn_b_cells[i] <- ids[1]
+    result$d_b_cells[i] <- dists[1]
+    result$nn_tregs[i] <- ids[2]
+    result$d_tregs[i] <- dists[2]
+    result$nn_cd8[i] <- ids[3]
+    result$d_cd8[i] <- dists[3]
+    result$nn_cd4[i] <- ids[4]
+    result$d_cd4[i] <- dists[4]
+    result$dist_sum[i] <- sum(dists, na.rm = TRUE)
+    result$dist_avg[i] <- mean(dists, na.rm = TRUE)
+    
+  }
+  
+  # mean(result$dist_sum, na.rm=TRUE)
+  mean(result$dist_avg, na.rm=TRUE)
+  
+}
+
+g1_immune_dist <- c()
+for(i in 1:length(dcspomic@group1_spomics)) {
+  print(i)
+  g1_immune_dist[i] <- grab_immune_cluster_dist(dcspomic@group1_spomics[[i]])
+}
+
+g2_immune_dist <- c()
+for(i in 1:length(dcspomic@group2_spomics)) {
+  print(i)
+  g2_immune_dist[i] <- grab_immune_cluster_dist(dcspomic@group2_spomics[[i]])
+}
+
+wilcox.test(g1_immune_dist, g2_immune_dist)
 ### ===========================
 
 ## Compare to t-test

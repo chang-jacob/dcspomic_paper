@@ -43,12 +43,13 @@ data_path <- "output/simulation/intersample_variance"
 ## Read simulation data files and join into a single data frame
 ## The simulations were split into four files for faster processing
 
-df1 <- readRDS(file.path(data_path, "cluster_process_df1.rds"))
-df2 <- readRDS(file.path(data_path, "cluster_process_df2.rds"))
-df3 <- readRDS(file.path(data_path, "cluster_process_df3.rds"))
-df4 <- readRDS(file.path(data_path, "cluster_process_df4.rds"))
+# df1 <- readRDS(file.path(data_path, "cluster_process_df1.rds"))
+# df2 <- readRDS(file.path(data_path, "cluster_process_df2.rds"))
+# df3 <- readRDS(file.path(data_path, "cluster_process_df3.rds"))
+# df4 <- readRDS(file.path(data_path, "cluster_process_df4.rds"))
 
-results <- rbind(df1, df2, df3, df4)
+results <- readRDS(file.path(data_path, "cluster_process_test.rds"))
+# results <- rbind(df1, df2, df3, df4)
 results$i_j <- gsub("([A-Z])_([A-Z])", "(\\1)_(\\2)", results$i_j)
 
 
@@ -213,8 +214,9 @@ get_rmse_plots <- function(results, pair, seed = 123) {
     tidyplots::adjust_x_axis(cut_short_scale = TRUE) |>
     tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.png")) |>
     tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.pdf")) |>
-    tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.svg"))
-
+    # tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.svg"))
+    tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.eps"))
+  
 
   df_tau2_long |>
     dplyr::mutate(n = as.numeric(n)) |>
@@ -231,7 +233,9 @@ get_rmse_plots <- function(results, pair, seed = 123) {
     tidyplots::adjust_y_axis(limits = c(0, upper_limit)) |>
     tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.png")) |>
     tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.pdf")) |>
-    tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.svg"))
+    # tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.svg"))
+    tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.eps"))
+    
 }
 
 ## ---------------------------
@@ -242,5 +246,53 @@ get_rmse_plots(results, pair = "(A)_(B)", seed = 123)
 get_rmse_plots(results, pair = "(B)_(A)", seed = 123)
 get_rmse_plots(results, pair = "(B)_(B)", seed = 123)
 
+## ---------------------------
+
+library(tidyplots)
+
+## Visualize intra and inter- sample examples 
+spomic_list <- readRDS("spomics_first10x10.rds")
+length(spomic_list)
+
+simulation_colors <-
+  new_color_scheme(c("A" = "#56B4E9",
+                     "B" = "#E69F00"),
+                   name = "simulation_color_scheme")
 
 
+## intra-sample
+
+spomic_list[[1]] %>% 
+  plot_spomic() %>% 
+  adjust_colors(new_colors = simulation_colors) %>% 
+  save_plot("output/simulation/intersample_variance/intrasample_examples/example1.svg")
+
+spomic_list[[2]] %>% 
+  plot_spomic() %>% 
+  adjust_colors(new_colors = simulation_colors)
+
+spomic_list[[3]] %>% 
+  plot_spomic() %>% 
+  adjust_colors(new_colors = simulation_colors)
+
+spomic_list[[4]] %>% 
+  plot_spomic() %>% 
+  adjust_colors(new_colors = simulation_colors)
+
+## inter-sample
+
+spomic_list[[20]] %>% 
+  plot_spomic() %>% 
+  adjust_colors(new_colors = simulation_colors)
+
+spomic_list[[60]] %>% 
+  plot_spomic() %>% 
+  adjust_colors(new_colors = simulation_colors)
+
+spomic_list[[40]] %>% 
+  plot_spomic() %>% 
+  adjust_colors(new_colors = simulation_colors)
+
+spomic_list[[90]] %>% 
+  plot_spomic() %>% 
+  adjust_colors(new_colors = simulation_colors)
