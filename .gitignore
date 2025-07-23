@@ -6,6 +6,7 @@ data/
 dcspomic_paper.Rproj
 
 *.rds
+*.png
 
 output/
 figures/

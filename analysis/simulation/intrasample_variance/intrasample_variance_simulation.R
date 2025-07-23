@@ -152,6 +152,20 @@ for (j in 1:n_rounds) {
 }
 homogeneous_rounds <- bind_rows(homogeneous_list)
 
+ground_truth_estimates <- homogeneous_rounds |>
+  group_by(round, i_j) |>
+  summarise(theta_k_hat = mean(colocalization_stat, na.rm=TRUE),
+            sigma2_k = var(colocalization_stat, na.rm=TRUE))
+
+df <- ground_truth_estimates |> inner_join(homogeneous_rounds)
+
+safe_saveRDS(object = df, 
+             file = file.path(oak_path, 
+                              "jachang4", 
+                              "dcspomic_output", 
+                              "intrasample_simulation", 
+                              "homogeneous_pattern_stats.rds"))
+
 safe_saveRDS(object = homogeneous_spomics, 
              file = file.path(oak_path, 
                               "jachang4", 
@@ -159,25 +173,9 @@ safe_saveRDS(object = homogeneous_spomics,
                               "intrasample_simulation", 
                               "homogeneous_pattern_spomics.rds"))
 
-safe_saveRDS(object = homogeneous_rounds, 
-             file = file.path(oak_path, 
-                              "jachang4", 
-                              "dcspomic_output", 
-                              "intrasample_simulation", 
-                              "homogeneous_pattern_stats.rds"))
-
-ground_truth_estimates <- homogeneous_rounds |>
-  group_by(round, i_j) |>
-  summarise(theta_k_hat = mean(colocalization_stat, na.rm=TRUE),
-            sigma2_k = var(colocalization_stat, na.rm=TRUE))
-
-homogeneous_spomics[[1]] %>% plot_cell_proportions()
-
-df <- ground_truth_estimates |> inner_join(homogeneous_rounds)
-
-plot_simulation_results(df, title = "Homogeneous pattern") |>
-  save_plot(filename = "output/simulation/intrasample_variance/homogeneous_process_sigma2k.png") %>% 
-    save_plot(filename = "output/simulation/intrasample_variance/homogeneous_process_sigma2k.pdf")
+# plot_simulation_results(df, title = "Homogeneous pattern") |>
+#   save_plot(filename = "output/simulation/intrasample_variance/homogeneous_process_sigma2k.png") %>% 
+#     save_plot(filename = "output/simulation/intrasample_variance/homogeneous_process_sigma2k.pdf")
 
 ## ---------------------------
 
@@ -211,20 +209,6 @@ for (j in 1:n_rounds) {
 
 divergent_rounds <- bind_rows(divergent_list)
 
-safe_saveRDS(object = divergent_spomics, 
-             file = file.path(oak_path, 
-                              "jachang4", 
-                              "dcspomic_output", 
-                              "intrasample_simulation", 
-                              "divergent_pattern_spomics.rds"))
-
-safe_saveRDS(object = divergent_rounds, 
-             file = file.path(oak_path, 
-                              "jachang4", 
-                              "dcspomic_output", 
-                              "intrasample_simulation", 
-                              "divergent_pattern_stats.rds"))
-
 ground_truth_estimates <- divergent_rounds |>
   group_by(round, i_j) |>
   summarise(theta_k_hat = mean(colocalization_stat, na.rm=TRUE),
@@ -232,12 +216,25 @@ ground_truth_estimates <- divergent_rounds |>
 
 df <- ground_truth_estimates |> inner_join(divergent_rounds)
 
-plot_simulation_results(df, title = "Divergent pattern") %>%  
-  save_plot(filename = "output/simulation/intrasample_variance/divergent_process_sigma2k.png") %>%
-  save_plot(filename = "output/simulation/intrasample_variance/divergent_process_sigma2k.pdf")
+safe_saveRDS(object = df, 
+             file = file.path(oak_path, 
+                              "jachang4", 
+                              "dcspomic_output", 
+                              "intrasample_simulation", 
+                              "divergent_pattern_stats.rds"))
 
+safe_saveRDS(object = divergent_spomics, 
+             file = file.path(oak_path, 
+                              "jachang4", 
+                              "dcspomic_output", 
+                              "intrasample_simulation", 
+                              "divergent_pattern_spomics.rds"))
 
-divergent_spomics[[1]] %>% plot_cell_proportions()
+# 
+# plot_simulation_results(df, title = "Divergent pattern") %>%  
+#   save_plot(filename = "output/simulation/intrasample_variance/divergent_process_sigma2k.png") %>%
+#   save_plot(filename = "output/simulation/intrasample_variance/divergent_process_sigma2k.pdf")
+
 
 ## ---------------------------
 
@@ -332,6 +329,20 @@ cluster_rounds <- bind_rows(summaries_list)
 spomics_list <- unlist(all_spomics, recursive = FALSE)
 cluster_spomics <- spomics_list[!sapply(spomics_list, is.null)]
 
+ground_truth_estimates <- cluster_rounds |>
+  group_by(round, i_j) |>
+  summarise(theta_k_hat = mean(colocalization_stat, na.rm=TRUE),
+            sigma2_k = var(colocalization_stat, na.rm=TRUE))
+
+df <- ground_truth_estimates |> inner_join(cluster_rounds)
+
+safe_saveRDS(object = df, 
+             file = file.path(oak_path, 
+                              "jachang4", 
+                              "dcspomic_output", 
+                              "intrasample_simulation", 
+                              "cluster_pattern_stats.rds"))
+
 safe_saveRDS(object = cluster_spomics, 
              file = file.path(oak_path, 
                               "jachang4", 
@@ -339,19 +350,9 @@ safe_saveRDS(object = cluster_spomics,
                               "intrasample_simulation", 
                               "cluster_pattern_spomics.rds"))
 
-safe_saveRDS(object = cluster_rounds, 
-             file = file.path(oak_path, 
-                              "jachang4", 
-                              "dcspomic_output", 
-                              "intrasample_simulation", 
-                              "cluster_pattern_stats.rds"))
 
-ground_truth_estimates <- cluster_rounds |>
-  group_by(round, i_j) |>
-  summarise(theta_k_hat = mean(colocalization_stat, na.rm=TRUE),
-            sigma2_k = var(colocalization_stat, na.rm=TRUE))
-
-df <- ground_truth_estimates |> inner_join(cluster_rounds)
-plot_simulation_results(df, title = "Cluster pattern") %>%  
-  save_plot(filename = "output/simulation/intrasample_variance/cluster_process_sigma2k.png") %>%
-  save_plot(filename = "output/simulation/intrasample_variance/clyuster_process_sigma2k.pdf")
+# 
+# 
+# plot_simulation_results(df, title = "Cluster pattern") %>%  
+#   save_plot(filename = "output/simulation/intrasample_variance/cluster_process_sigma2k.png") %>%
+#   save_plot(filename = "output/simulation/intrasample_variance/clyuster_process_sigma2k.pdf")
