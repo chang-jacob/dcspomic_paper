@@ -35,6 +35,16 @@ library(janitor)
 
 source("dcspomic_paper/analysis/plotting_utils.R")
 
+is_sherlock <- grepl("sh", Sys.info()[["nodename"]]) || Sys.getenv("SHERLOCK") != ""
+
+
+output_path <- ifelse(is_sherlock,
+                      "/oak/stanford/groups/plevriti/jachang4/dcspomic_output",
+                      "output")
+plot_path <- ifelse(is_sherlock,
+                    "/home/groups/plevriti/jachang4/dcspomic_paper/output",
+                    "output")
+
 # Schurch et al. has a curated TMA with two groups which we will perform
 # differential colocalization analysis on
 
@@ -195,11 +205,8 @@ saveRDS(group2_spomics, "output/crc_tma/group2_spomics_CLQ.rds")
 
 ## run DC-SPOMIC
 
-group1_spomics <- readRDS("output/crc_tma/group1_spomics_Lcross_global_envelope.rds")
-group2_spomics <- readRDS("output/crc_tma/group2_spomics_Lcross_global_envelope.rds")
-
-# group1_spomics <- readRDS("output/crc_tma/group1_spomics_Lcross_inhom_global_envelope.rds")
-# group2_spomics <- readRDS("output/crc_tma/group2_spomics_Lcross_inhom_global_envelope.rds")
+group1_spomics <- readRDS(file.path(output_path, "crc_tma/group1_spomics_Lcross_global_envelope.rds"))
+group2_spomics <- readRDS(file.path(output_path, "crc_tma/group2_spomics_Lcross_global_envelope.rds"))
 
 dcspomic <- create_dcspomic(
   group1_name = "CLR",
@@ -365,59 +372,18 @@ generate_forest_plots <- function(dcspomic, i, j) {
 
 }
 
-# troubleshoot
-if (filter_tests) {
-  dcspomic_object <- determine_pairs_to_test(dcspomic_object, nonrandom_consistency)
-} else {
-  group1_pairs <- extract_cell_pairs(dcspomic_object@group1_spomics)
-  group2_pairs <- extract_cell_pairs(dcspomic_object@group2_spomics)
-  dcspomic_object@results$pairs_to_test <- union(group1_pairs, group2_pairs)
-}
-
-group1_summaries <- compute_spatial_summaries(dcspomic_object@group1_spomics)
-group2_summaries <- compute_spatial_summaries(dcspomic_object@group2_spomics)
-
-group1_model <- run_random_effects_meta_analysis(group1_summaries, dcspomic_object@details$hyperparameters$tau_estimator)
-
-
-cell_pairs <- unique(colocalization_distributions$i_j)
-pooled_estimates <- list()
-models <- list()
-for(pair in cell_pairs) {
-  yi <- colocalization_distributions |> dplyr::filter(i_j == pair,!is.na(colocalization_var),
-                                                      !is.na(colocalization_stat)) |> dplyr::pull(colocalization_stat)
-  vi <- colocalization_distributions |> dplyr::filter(i_j == pair, !is.na(colocalization_var),
-                                                      !is.na(colocalization_stat)) |> dplyr::pull(colocalization_var)
-  # slab <- colocalization_distributions |> dplyr::filter(i_j == pair, !is.na(colocalization_var)) |> dplyr::pull(sample)
-  slab <- colocalization_distributions |> dplyr::filter(i_j == pair,
-                                                        !is.na(colocalization_var),
-                                                        !is.na(colocalization_stat))
-
-  if(length(yi) < 2) {
-    models[[pair]] <- NULL
-  } else if (var(yi) == 0) {
-    model <- metafor::rma(yi = yi, vi = vi + 1e-10, slab = slab, method = method)
-    models[[pair]] <- model
-  } else {
-    model <- metafor::rma(yi = yi, vi = vi, slab = slab, method = method)
-    models[[pair]] <- model
-  }
-}
-
-# df$patient <- rownames(df)
-# df |>
-#   tidyplot(x = yi, y = patient) |>
-#   add_data_points(filter_rows(group == "Group 1"), color = "blue") |>
-#   add_sem_errorbar()
-#   add_data_points(filter_rows(group == "Group 2"), color = "red")
-
 
 #############
 i = "(b_cells)"
 j = "(b_cells)"
 generate_forest_plots(dcspomic, i, j)
-ggsave("output/crc_tma/lcross_75um/bcells_bcells_forestplot.pdf", height = 5, width = 4, units = "in")
-ggsave("output/crc_tma/lcross_75um/bcells_bcells_forestplot.png", height = 5, width = 4, units = "in")
+ggsave(file.path(plot_path, "crc_tma/lcross_75um/bcells_bcells_forestplot.pdf"), height = 5, width = 4, units = "in")
+ggsave(file.path(plot_path, "crc_tma/lcross_75um/bcells_bcells_forestplot.png"), height = 5, width = 4, units = "in")
+ggsave(file.path(plot_path, "crc_tma/lcross_75um/bcells_bcells_forestplot.svg"), height = 5, width = 4, units = "in")
+
+# ggsave("output/crc_tma/lcross_75um/bcells_bcells_forestplot.pdf", height = 5, width = 4, units = "in")
+# ggsave("output/crc_tma/lcross_75um/bcells_bcells_forestplot.png", height = 5, width = 4, units = "in")
+# ggsave("output/crc_tma/lcross_75um/bcells_bcells_forestplot.svg", height = 5, width = 4, units = "in")
 p1 <- plot_cell_pair(group1_spomics[[6]], i, j)
 p2 <- plot_cell_pair(group2_spomics[[10]], i, j)
 
@@ -462,6 +428,7 @@ j = "(cd4_t_cells_cd45ro)"
 generate_forest_plots(dcspomic, i, j)
 ggsave("output/crc_tma/lcross_75um/cd4_cd4_forestplot.pdf", height = 5, width = 4, units = "in")
 ggsave("output/crc_tma/lcross_75um/cd4_cd4_forestplot.png", height = 5, width = 4, units = "in")
+ggsave("output/crc_tma/lcross_75um/cd4_cd4_forestplot.svg", height = 5, width = 4, units = "in")
 
 p1 <- plot_cell_pair(group1_spomics[[3]], i, j)
 p2 <- plot_cell_pair(group2_spomics[[11]], i, j)
@@ -842,7 +809,7 @@ for (i in 1:nrow(df_sub)) {
   this_xy <- as.numeric(this_cell[, c("x", "y")])
   dists <- c()
   ids <- c()
-  
+
   for (target_type in cell_types) {
     if (this_cell$cell_type == target_type) {
       # Find nearest neighbor of *same* type, excluding self
@@ -882,7 +849,7 @@ hist(result$dist_sum, na.rm=TRUE)
 grab_immune_cluster_dist <- function(spomic) {
   cell_types <- c("(b_cells)", "(tregs)", "(cd8_t_cells)", "(cd4_t_cells_cd45ro)")
   df_sub <- spomic@df %>% filter(cell_type %in% cell_types)
-  
+
   # Initialize result dataframe
   result <- data.frame(
     cell_id = df_sub$cell_id,
@@ -897,13 +864,13 @@ grab_immune_cluster_dist <- function(spomic) {
     d_cd4 = NA,
     dist_sum = NA
   )
-  
+
   for (i in 1:nrow(df_sub)) {
     this_cell <- df_sub[i, ]
     this_xy <- as.numeric(this_cell[, c("x", "y")])
     dists <- c()
     ids <- c()
-    
+
     for (target_type in cell_types) {
       if (this_cell$cell_type == target_type) {
         # Find nearest neighbor of *same* type, excluding self
@@ -935,12 +902,12 @@ grab_immune_cluster_dist <- function(spomic) {
     result$d_cd4[i] <- dists[4]
     result$dist_sum[i] <- sum(dists, na.rm = TRUE)
     result$dist_avg[i] <- mean(dists, na.rm = TRUE)
-    
+
   }
-  
+
   # mean(result$dist_sum, na.rm=TRUE)
   mean(result$dist_avg, na.rm=TRUE)
-  
+
 }
 
 g1_immune_dist <- c()

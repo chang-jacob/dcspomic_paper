@@ -43,13 +43,13 @@ data_path <- "output/simulation/intersample_variance"
 ## Read simulation data files and join into a single data frame
 ## The simulations were split into four files for faster processing
 
-# df1 <- readRDS(file.path(data_path, "cluster_process_df1.rds"))
-# df2 <- readRDS(file.path(data_path, "cluster_process_df2.rds"))
-# df3 <- readRDS(file.path(data_path, "cluster_process_df3.rds"))
-# df4 <- readRDS(file.path(data_path, "cluster_process_df4.rds"))
+df1 <- readRDS(file.path(data_path, "cluster_process_df1.rds"))
+df2 <- readRDS(file.path(data_path, "cluster_process_df2.rds"))
+df3 <- readRDS(file.path(data_path, "cluster_process_df3.rds"))
+df4 <- readRDS(file.path(data_path, "cluster_process_df4.rds"))
+results <- rbind(df1, df2, df3, df4)
 
-results <- readRDS(file.path(data_path, "cluster_process_test.rds"))
-# results <- rbind(df1, df2, df3, df4)
+# results <- readRDS(file.path(data_path, "cluster_process_test.rds"))
 results$i_j <- gsub("([A-Z])_([A-Z])", "(\\1)_(\\2)", results$i_j)
 
 
@@ -215,7 +215,7 @@ get_rmse_plots <- function(results, pair, seed = 123) {
     tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.png")) |>
     tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.pdf")) |>
     # tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.svg"))
-    tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.eps"))
+    tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_mu_rmse_plot.svg"))
 
 
   df_tau2_long |>
@@ -234,7 +234,7 @@ get_rmse_plots <- function(results, pair, seed = 123) {
     tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.png")) |>
     tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.pdf")) |>
     # tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.svg"))
-    tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.eps"))
+    tidyplots::save_plot(filename = paste0("output/simulation/intersample_variance/", pair, "_tau2_rmse_plot.svg"))
 
 }
 
