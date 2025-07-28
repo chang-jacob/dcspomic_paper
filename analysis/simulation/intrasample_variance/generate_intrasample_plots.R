@@ -1,19 +1,41 @@
-# devtools::load_all("/home/groups/plevriti/jachang4/spomic")
-devtools::load_all("/Users/jacobchang/Lab/spomic")
+## ---------------------------
+##
+## Script name: genarate_intrasample_plots.R
+##
+## Author: Jake Chang
+##
+## Date Modified: 2025-07-28
+##
+## ---------------------------
+##
+#' Description:
+#' This script takes the outputs that are saved in intrasample_variance_simulation.R
+#' and generates plots that are used in the figures of the manuscript. 
+#' 
+#' Note:
+#' The files from intrasample_variance_simulation.R are saved to SCRATCH and/or OAK 
+#' with the date that the script was run. You will need to adjust the input path 
+#' to adjust for this.
+##
+## ---------------------------
 
+library(spomic)
 library(tidyplots)
 library(dplyr)
 library(tidyr)
 
-oak_path <- "/oak/stanford/groups/plevriti"
-simulation_colors <- new_color_scheme(x = c("(A)" = "#56B4E9",
-                                            "(B)" = "#E69F00",
-                                            "(C)" = "#D3D3D3",
-                                            "(Rare 1)" = "#009E73",
-                                            "(Rare 2)" = "#D55E00"),
-                                      name = "simulation_color_scheme")
+## setup 
+scratch <- config::get("scratch")
+oak <- config::get("oak")
+date <- format(Sys.Date(), "%Y%m%d")
 
-homogeneous_spomics <- readRDS("output/simulation/intrasample_variance/homogeneous_pattern_spomics.rds")
+source("analysis/plotting_utils.R")
+
+homogeneous_spomics <- readRDS(file.path(oak, 
+                                         "dcspomic_output", 
+                                         date,
+                                         "intrasample_simulation", 
+                                         "homogeneous_pattern_spomics.rds"))
 
 plot_spomic(homogeneous_spomics[[1]]) %>%
   adjust_colors(new_colors = simulation_colors) %>%
@@ -73,7 +95,11 @@ plot_spomic(homogeneous_spomics[[4]]) %>%
 
 # ---------------
 
-divergent_spomics <- readRDS("output/simulation/intrasample_variance/divergent_pattern_spomics.rds")
+divergent_spomics <- readRDS(file.path(oak, 
+                                         "dcspomic_output", 
+                                         date,
+                                         "intrasample_simulation", 
+                                         "divergent_pattern_spomics.rds"))
 
 plot_spomic(divergent_spomics[[1]]) %>%
   adjust_colors(new_colors = simulation_colors) %>%
@@ -133,7 +159,11 @@ plot_spomic(divergent_spomics[[4]]) %>%
 
 # ---------------
 
-cluster_spomics <- readRDS("output/simulation/intrasample_variance/cluster_pattern_spomics.rds")
+cluster_spomics <- readRDS(file.path(oak, 
+                                       "dcspomic_output", 
+                                       date,
+                                       "intrasample_simulation", 
+                                       "cluster_pattern_spomics.rds"))
 
 plot_spomic(cluster_spomics[[1]]) %>%
   adjust_colors(new_colors = simulation_colors) %>%
@@ -237,21 +267,33 @@ plot_simulation_results <- function(df, title) {
     adjust_title(title, fontsize = 7)
 }
 
-homogeneous_stats <- readRDS("output/simulation/intrasample_variance/homogeneous_pattern_stats.rds")
+homogeneous_stats <- readRDS(file.path(oak, 
+                                       "dcspomic_output", 
+                                       date,
+                                       "intrasample_simulation", 
+                                       "homogeneous_pattern_stats.rds"))
 
 plot_simulation_results(homogeneous_stats, "") |>
   save_plot("output/simulation/intrasample_variance/homogeneous_process/intrasample_variance_comparison.png") |>
   save_plot("output/simulation/intrasample_variance/homogeneous_process/intrasample_variance_comparison.pdf") |>
   save_plot("output/simulation/intrasample_variance/homogeneous_process/intrasample_variance_comparison.svg")
 
-divergent_stats <- readRDS("output/simulation/intrasample_variance/divergent_pattern_stats.rds")
+divergent_stats <- readRDS(file.path(oak, 
+                                       "dcspomic_output", 
+                                       date,
+                                       "intrasample_simulation", 
+                                       "divergent_pattern_stats.rds"))
 
 plot_simulation_results(divergent_stats, "") |>
   save_plot("output/simulation/intrasample_variance/divergent_process/intrasample_variance_comparison.png") |>
   save_plot("output/simulation/intrasample_variance/divergent_process/intrasample_variance_comparison.pdf") |>
   save_plot("output/simulation/intrasample_variance/divergent_process/intrasample_variance_comparison.svg")
 
-cluster_stats <- readRDS("output/simulation/intrasample_variance/cluster_pattern_stats.rds")
+cluster_stats <- readRDS(file.path(oak, 
+                                       "dcspomic_output", 
+                                       date,
+                                       "intrasample_simulation", 
+                                       "cluster_pattern_stats.rds"))
 
 plot_simulation_results(cluster_stats, "") |>
   save_plot("output/simulation/intrasample_variance/cluster_process/intrasample_variance_comparison.png") |>
