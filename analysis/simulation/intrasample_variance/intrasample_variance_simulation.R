@@ -4,7 +4,7 @@
 ##
 ## Author: Jake Chang
 ##
-## Date Modified: 2025-07-22
+## Date Modified: 2025-07-28
 ##
 ## ---------------------------
 ##
@@ -17,34 +17,49 @@
 ##
 ## ---------------------------
 
-## Load libraries
+##  SET THESE PARAMETERS BEFORE RUNNING!
+final_run <- FALSE # when TRUE, the files are copied to OAK in addition to SCRATCH
 
-# devtools::load_all("/Users/jacobchang/Lab/spomic")
-devtools::load_all("/home/groups/plevriti/jachang4/spomic")
+## ---------------------------
+
+## setup 
+scratch <- config::get("scratch")
+oak <- config::get("oak")
+date <- format(Sys.Date(), "%Y%m%d")
+
+source("analysis/plotting_utils.R")
+
+
+## Load libraries
+library(spomic)
 library(spatstat)
+library(pbapply)
+
+
 library(dplyr)
 library(tidyr)
-library(progress)
-library(ggplot2)
-library(ggpubr)
-library(ggrepel)
-library(cowplot)
-library(patchwork)
-library(tidyplots)
-library(pbapply)
+# library(progress)
+# library(ggplot2)
+# library(ggpubr)
+# library(ggrepel)
+# library(cowplot)
+# library(patchwork)
+# library(tidyplots)
+# library(pbapply)
 library(purrr)
-library(pbapply)
-library(parallel)
+# library(pbapply)
+# library(parallel)
 
 ## Set global parameters
 square_size <- 2000
 window <- owin(square(square_size))
-cell_types <- c("(A)", "(B)", "(C)", "(Rare 1)", "(Rare 2)")
+
+# cell_types <- c("(A)", "(B)", "(C)", "(Rare 1)", "(Rare 2)")
 
 n_rounds <- 10
 n_sims <- 100
 
-oak_path <- "/oak/stanford/groups/plevriti"
+# oak_path <- "/oak/stanford/groups/plevriti"
 
 # LAMBDA_A and LAMBDA_B are different for the three different patterns, but
 # LAMBDA_C, LAMBDA_RARE1, and LAMBDA_RARE2 are constant throughout the script.
@@ -52,12 +67,6 @@ LAMBDA_C <- 0.1/1000
 LAMBDA_RARE1 <- 0.01/1000
 LAMBDA_RARE2 <- 0.005/1000
 
-simulation_colors <- new_color_scheme(x = c("(A)" = "#56B4E9",
-                                            "(B)" = "#E69F00",
-                                            "(C)" = "#D3D3D3",
-                                            "(Rare 1)" = "#009E73",
-                                            "(Rare 2)" = "#D55E00"),
-                                      name = "simulation_color_scheme")
 
 ## ---------------------------
 
@@ -142,7 +151,7 @@ for (j in 1:n_rounds) {
   cat("Running round", j, "\n")
 
   sims <- pblapply(1:n_sims, function(i) {
-    run_sim(i, j, lambda, window, cell_types)
+    run_sim(i, j, lambda, window)
   }, cl = parallel::detectCores() - 1)  # Use all but one core
   
   homogeneous_spomic_colocalization_results <- map(sims, "summary")
@@ -160,22 +169,34 @@ ground_truth_estimates <- homogeneous_rounds |>
 df <- ground_truth_estimates |> inner_join(homogeneous_rounds)
 
 safe_saveRDS(object = df, 
-             file = file.path(oak_path, 
-                              "jachang4", 
+             file = file.path(scratch, 
                               "dcspomic_output", 
+                              date,
                               "intrasample_simulation", 
                               "homogeneous_pattern_stats.rds"))
+if(final_run) {
+  safe_saveRDS(object = df, 
+               file = file.path(oak, 
+                                "dcspomic_output", 
+                                date,
+                                "intrasample_simulation", 
+                                "homogeneous_pattern_stats.rds"))
+}
 
 safe_saveRDS(object = homogeneous_spomics, 
-             file = file.path(oak_path, 
-                              "jachang4", 
+             file = file.path(scratch, 
                               "dcspomic_output", 
+                              date, 
                               "intrasample_simulation", 
                               "homogeneous_pattern_spomics.rds"))
-
-# plot_simulation_results(df, title = "Homogeneous pattern") |>
-#   save_plot(filename = "output/simulation/intrasample_variance/homogeneous_process_sigma2k.png") %>% 
-#     save_plot(filename = "output/simulation/intrasample_variance/homogeneous_process_sigma2k.pdf")
+if(final_run) {
+  safe_saveRDS(object = homogeneous_spomics, 
+               file = file.path(oak, 
+                                "dcspomic_output", 
+                                date, 
+                                "intrasample_simulation", 
+                                "homogeneous_pattern_spomics.rds"))
+}
 
 ## ---------------------------
 
@@ -198,7 +219,7 @@ for (j in 1:n_rounds) {
   cat("Running round", j, "\n")
   
   sims <- pblapply(1:n_sims, function(i) {
-    run_sim(i, j, lambda, window, cell_types)
+    run_sim(i, j, lambda, window)
   }, cl = parallel::detectCores() - 1)  # Use all but one core
   
   divergent_spomic_colocalization_results <- map(sims, "summary")
@@ -217,24 +238,34 @@ ground_truth_estimates <- divergent_rounds |>
 df <- ground_truth_estimates |> inner_join(divergent_rounds)
 
 safe_saveRDS(object = df, 
-             file = file.path(oak_path, 
-                              "jachang4", 
+             file = file.path(scratch, 
                               "dcspomic_output", 
+                              date,
                               "intrasample_simulation", 
                               "divergent_pattern_stats.rds"))
+if(final_run) {
+  safe_saveRDS(object = df, 
+               file = file.path(oak, 
+                                "dcspomic_output", 
+                                date,
+                                "intrasample_simulation", 
+                                "divergent_pattern_stats.rds"))
+}
 
 safe_saveRDS(object = divergent_spomics, 
-             file = file.path(oak_path, 
-                              "jachang4", 
+             file = file.path(scratch, 
                               "dcspomic_output", 
+                              date, 
                               "intrasample_simulation", 
                               "divergent_pattern_spomics.rds"))
-
-# 
-# plot_simulation_results(df, title = "Divergent pattern") %>%  
-#   save_plot(filename = "output/simulation/intrasample_variance/divergent_process_sigma2k.png") %>%
-#   save_plot(filename = "output/simulation/intrasample_variance/divergent_process_sigma2k.pdf")
-
+if(final_run) {
+  safe_saveRDS(object = divergent_spomics, 
+               file = file.path(oak, 
+                                "dcspomic_output", 
+                                date, 
+                                "intrasample_simulation", 
+                                "divergent_pattern_spomics.rds"))
+}
 
 ## ---------------------------
 
@@ -337,22 +368,31 @@ ground_truth_estimates <- cluster_rounds |>
 df <- ground_truth_estimates |> inner_join(cluster_rounds)
 
 safe_saveRDS(object = df, 
-             file = file.path(oak_path, 
-                              "jachang4", 
+             file = file.path(scratch, 
                               "dcspomic_output", 
+                              date,
                               "intrasample_simulation", 
                               "cluster_pattern_stats.rds"))
+if(final_run) {
+  safe_saveRDS(object = df, 
+               file = file.path(oak, 
+                                "dcspomic_output", 
+                                date,
+                                "intrasample_simulation", 
+                                "cluster_pattern_stats.rds"))
+}
 
 safe_saveRDS(object = cluster_spomics, 
-             file = file.path(oak_path, 
-                              "jachang4", 
+             file = file.path(scratch, 
                               "dcspomic_output", 
+                              date, 
                               "intrasample_simulation", 
                               "cluster_pattern_spomics.rds"))
-
-
-# 
-# 
-# plot_simulation_results(df, title = "Cluster pattern") %>%  
-#   save_plot(filename = "output/simulation/intrasample_variance/cluster_process_sigma2k.png") %>%
-#   save_plot(filename = "output/simulation/intrasample_variance/clyuster_process_sigma2k.pdf")
+if(final_run) {
+  safe_saveRDS(object = cluster_spomics, 
+               file = file.path(oak, 
+                                "dcspomic_output", 
+                                date, 
+                                "intrasample_simulation", 
+                                "cluster_pattern_spomics.rds"))
+}
