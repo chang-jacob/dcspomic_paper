@@ -4,7 +4,7 @@
 ##
 ## Author: Jake Chang
 ##
-## Date Modified: 2025-07-01
+## Date Modified: 2025-07-28
 ##
 ## ---------------------------
 ##
@@ -20,6 +20,15 @@ library(tidyplots)
 library(ggplot2)
 
 ## ---------------------------
+
+## color scheme for simulations 
+simulation_colors <- tidyplots::new_color_scheme(
+  x = c("(A)" = "#56B4E9",
+        "(B)" = "#E69F00",
+        "(C)" = "#D3D3D3",
+        "(Rare 1)" = "#009E73",
+        "(Rare 2)" = "#D55E00"),
+  name = "simulation_color_scheme")
 
 ## color scheme for the CRC TMA
 
@@ -48,3 +57,5 @@ crc_tma_palette <- tidyplots::new_color_scheme(c(
 ),
 name = "crc_tma_palette"
 )
+
+

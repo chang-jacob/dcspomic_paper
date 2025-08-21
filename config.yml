@@ -1,0 +1,7 @@
+default:
+  scratch: "/scratch/users/jachang4"
+  oak: "/oak/stanford/groups/plevriti/jachang4"
+
+local:
+  scratch: "/scratch/users/jachang4"
+  oak: "/oak/stanford/groups/plevriti/jachang4"

@@ -4,7 +4,7 @@
 ##
 ## Author: Jake Chang
 ##
-## Date Modified: 2025-07-28
+## Date Modified: 2025-08-06
 ##
 ## ---------------------------
 ##
@@ -38,17 +38,7 @@ library(pbapply)
 
 library(dplyr)
 library(tidyr)
-# library(progress)
-# library(ggplot2)
-# library(ggpubr)
-# library(ggrepel)
-# library(cowplot)
-# library(patchwork)
-# library(tidyplots)
-# library(pbapply)
 library(purrr)
-# library(pbapply)
-# library(parallel)
 
 ## Set global parameters
 square_size <- 2000
@@ -56,8 +46,8 @@ window <- owin(square(square_size))
 
 # cell_types <- c("(A)", "(B)", "(C)", "(Rare 1)", "(Rare 2)")
 
-n_rounds <- 10
-n_sims <- 100
+n_rounds <- 1
+n_sims <- 1000
 
 # oak_path <- "/oak/stanford/groups/plevriti"
 
@@ -147,6 +137,7 @@ lambda <- c(LAMBDA_A, LAMBDA_B, LAMBDA_C, LAMBDA_RARE1, LAMBDA_RARE2)
 
 homogeneous_list <- vector("list", n_rounds)
 
+print(Sys.time())
 for (j in 1:n_rounds) {
   cat("Running round", j, "\n")
 
@@ -215,6 +206,7 @@ lambda <- c(LAMBDA_A, LAMBDA_B, LAMBDA_C, LAMBDA_RARE1, LAMBDA_RARE2)
 
 divergent_list <- vector("list", n_rounds)
 
+print(Sys.time())
 for (j in 1:n_rounds) {
   cat("Running round", j, "\n")
   
@@ -227,6 +219,7 @@ for (j in 1:n_rounds) {
   
   divergent_list[[j]] <- bind_rows(divergent_spomic_colocalization_results)
 }
+
 
 divergent_rounds <- bind_rows(divergent_list)
 
@@ -307,7 +300,7 @@ run_cluster_sim <- function(
     spomic <- create_spomic(ppp_to_df(marked_process, sample_name = ""))
     spomic <- set_spomic_hyperparameters(spomic = spomic, colocalization_type = "Lcross", fixed_distance = FALSE, r = 200)
     spomic <- get_spatial_stats(spomic)
-    temp <- get_spatial_summary(spomic)
+    temp <- get_spatial_summary(spomic)|> mutate(sim = i)
     temp$round = round
     list(
       summary = temp,
@@ -342,7 +335,7 @@ for (j in 1:n_rounds) {
       offspring_dispersion = offspring_dispersion0,
       window = window,
       square_size = square_size,
-      cell_types = cell_types,
+      cell_types = c("(A)", "(B)", "(C)", "(Rare 1)", "(Rare 2)"),
       LAMBDA_C = LAMBDA_C,
       LAMBDA_RARE1 = LAMBDA_RARE1,
       LAMBDA_RARE2 = LAMBDA_RARE2
@@ -396,3 +389,4 @@ if(final_run) {
                                 "intrasample_simulation", 
                                 "cluster_pattern_spomics.rds"))
 }
+

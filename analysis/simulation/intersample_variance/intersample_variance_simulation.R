@@ -1,4 +1,4 @@
-devtools::load_all("/home/groups/plevriti/jachang4/spomic")
+library(spomic)
 library(spatstat)
 library(dplyr)
 library(tidyr)
@@ -8,13 +8,18 @@ library(metafor)
 library(pbapply)
 library(concaveman)
 
+scratch <- config::get("scratch")
+oak <- config::get("oak")
+date <- format(Sys.Date(), "%Y%m%d")
+
+source("analysis/plotting_utils.R")
 
 # SIMULATION PARAMETERS
 N_SIM <- 100
 WINDOW_SIZE <- 2000
 R <- 200
 
-BASE_DIR <- "/home/groups/plevriti/jachang4"
+# BASE_DIR <- "/home/groups/plevriti/jachang4"
 
 intra_sample_simulation <- function(intra_sample_n,
                                     parent_lambda0,
