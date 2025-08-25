@@ -1,7 +1,11 @@
 default:
   scratch: "/scratch/users/jachang4"
   oak: "/oak/stanford/groups/plevriti/jachang4"
-
+  home: "/home/groups/plevriti/jachang4"
+  project_dir: "/home/groups/plevriti/jachang4/dcspomic_paper"
+  
 local:
   scratch: "/scratch/users/jachang4"
   oak: "/oak/stanford/groups/plevriti/jachang4"
+  home: "/home/groups/plevriti/jachang4"
+  project_dir: "/home/groups/plevriti/jachang4/dcspomic_paper"
