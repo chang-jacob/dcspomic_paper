@@ -1,4 +1,5 @@
 # Differential Colocalization in Spatial Omics (DC-SPOMIC)
+[![DOI](https://zenodo.org/badge/1015558473.svg)](https://doi.org/10.5281/zenodo.17058880)
 
 This repository contains the code necessary to reproduce results presented in the DC-SPOMIC manuscript. 
 
